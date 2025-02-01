@@ -1,8 +1,13 @@
 import { ApplicationConfig } from '@angular/core';
 import { provideRouter } from '@angular/router';
+import {
+  provideCharts,
+  withDefaultRegisterables,
+  } from 'ng2-charts';
 
 import { routes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {
-  providers: [provideRouter(routes)]
+  providers: [provideRouter(routes), provideCharts(withDefaultRegisterables())] //  registerables: [BarController, Legend, Colors] }] Alternatively, include a minimal configuration to reduce the bundle size, eg:
+
 };

@@ -1,0 +1,31 @@
+<div>
+  <label>
+    Time Period:
+    <select [(ngModel)]="timeInterval" (change)="updateTimeInterval()">
+      <option value="quarter">Quarter</option>
+      <option value="month">Month</option>
+      <option value="week">Week</option>
+      <option value="day">Day</option>
+    </select>
+  </label>
+
+  <label>
+    Start Date:
+    <input type="date" [(ngModel)]="startDate" (change)="updateTimeInterval()" />
+  </label>
+  <label>
+    End Date:
+    <input type="date" [(ngModel)]="endDate" (change)="updateTimeInterval()" />
+  </label>
+
+  <button (click)="resetZoom()" class="reset-zoom-btn">Reset Zoom</button>
+</div>
+
+<div style="display: block;" class="canvas-container">
+  <canvas id="canvasId"
+          baseChart
+          [data]="chartData"
+          [options]="chartOptions"
+          [type]="chartType">
+  </canvas>
+</div>
