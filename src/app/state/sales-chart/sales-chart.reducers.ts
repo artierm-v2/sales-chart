@@ -1,16 +1,18 @@
 import { Action, createReducer, on } from '@ngrx/store';
 import { SalesChartState } from './sales-chart.state';
-import { TimeInterval } from '../enums';
 import { loadChartData, loadChartDataError, loadChartDataSuccess, setDateSettings } from './sales-chart.actions';
+import { TimeInterval } from '../../shared/enums/time-interval.enum';
 
 
-const oneMonthAgo = new Date(new Date().setMonth(new Date().getMonth() - 1)).getTime();
-const currentDate = Date.now();
+export const SALES_CHART_FEATURE_KEY = 'sales-chart';
+
+const oneMonthAgo = new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString();
+const currentDate = new Date().toISOString();
 
 export const initialState: SalesChartState = {
   dateSettings: {
-    startDate: oneMonthAgo.toString(),
-    endDate: currentDate.toString(),
+    startDate: oneMonthAgo,
+    endDate: currentDate,
     timeInterval: TimeInterval.Month,
   },
   isLoading: false,

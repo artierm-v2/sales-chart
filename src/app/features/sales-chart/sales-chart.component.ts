@@ -5,9 +5,8 @@ import zoomPlugin from 'chartjs-plugin-zoom';
 import { FormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { distinctUntilChanged, Observable, Subscription } from 'rxjs';
-import { HttpClientModule } from '@angular/common/http';
 import { TimeInterval } from '../../shared/enums/time-interval.enum';
-import { SalesChartService } from '../../core/sales-chart/sales-chart.service';
+
 import { GetDailySalesView } from './interfaces/get-daily-sales.view';
 import * as salesChartSelectors from '../../state/sales-chart/sales-chart.selectors';
 import * as salesChartActions from '../../state/sales-chart/sales-chart.actions';
@@ -16,15 +15,44 @@ import { SalesChartState } from '../../state/sales-chart/sales-chart.state';
 @Component({
   selector: 'app-chart',
   standalone: true,
-  imports: [FormsModule, BaseChartDirective, HttpClientModule],
+  imports: [FormsModule, BaseChartDirective],
   templateUrl: './sales-chart.component.html',
   styleUrl: './sales-chart.component.scss',
 })
 export class SalesChartComponent implements  OnInit, OnDestroy {
   @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
   public chartType: ChartType = 'bar';
-  public startDate: string = '';
-  public endDate: string = '';
+ // Store ISO format internally
+ private _startDate: string = '';
+ private _endDate: string = '';
+
+ // Expose formatted dates for the input
+ get startDate(): string {
+   return this._startDate ? this.formatDateForInput(this._startDate) : '';
+ }
+
+ set startDate(value: string) {
+   this._startDate = value ? this.formatDateToISO(value) : '';
+   this.updateTimeInterval();
+ }
+
+ get endDate(): string {
+   return this._endDate ? this.formatDateForInput(this._endDate) : '';
+ }
+
+ set endDate(value: string) {
+   this._endDate = value ? this.formatDateToISO(value) : '';
+   this.updateTimeInterval();
+ }
+
+ private formatDateToISO(dateString: string): string {
+  return new Date(dateString).toISOString();
+}
+
+ private formatDateForInput(dateString: string): string {
+   return new Date(dateString).toISOString().split('T')[0];
+ }
+
   public timeInterval: TimeInterval = TimeInterval.Month;
 
   public chartData: ChartConfiguration['data'] = {
@@ -127,8 +155,8 @@ export class SalesChartComponent implements  OnInit, OnDestroy {
         .pipe(
           distinctUntilChanged(),
         ).subscribe((dateSettings) => {
-        this.startDate = dateSettings.startDate;
-        this.endDate = dateSettings.endDate;
+        this.startDate = new Date(dateSettings.startDate).toISOString();
+        this.endDate = new Date(dateSettings.endDate).toISOString();
         this.timeInterval= dateSettings.timeInterval;
       }),
     );

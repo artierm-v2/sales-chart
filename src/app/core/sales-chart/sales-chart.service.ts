@@ -13,6 +13,13 @@ export class SalesChartService {
   constructor(private http: HttpClient) {}
 
   getSalesData(startDate: string, endDate: string): Observable<GetDailySalesView> {
+
+  // const start = new Date(startDate);
+  // const end = new Date(endDate);
+
+  // const isoStartDate = start.toISOString();
+  // const isoEndtDate = end.toISOString();
+
     const params = new HttpParams()
       .set('startDate', startDate)
       .set('endDate', endDate);

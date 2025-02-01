@@ -6,8 +6,19 @@ import {
   } from 'ng2-charts';
 
 import { routes } from './app.routes';
+import { provideEffects } from '@ngrx/effects';
+import { provideState, provideStore } from '@ngrx/store';
+import { SALES_CHART_FEATURE_KEY, salesChartReducer } from './state/sales-chart/sales-chart.reducers';
+import { SalesChartEffects } from './state/sales-chart/sales-chart.effects';
+import { provideHttpClient } from '@angular/common/http';
 
 export const appConfig: ApplicationConfig = {
-  providers: [provideRouter(routes), provideCharts(withDefaultRegisterables())] //  registerables: [BarController, Legend, Colors] }] Alternatively, include a minimal configuration to reduce the bundle size, eg:
+  providers: [provideRouter(routes), provideCharts(withDefaultRegisterables()),
+    provideHttpClient(),
+    provideEffects(),
+    provideStore(),
+    provideState(SALES_CHART_FEATURE_KEY, salesChartReducer),
+    provideEffects(SalesChartEffects),
+  ] //  registerables: [BarController, Legend, Colors] }] Alternatively, include a minimal configuration to reduce the bundle size, eg:
 
 };

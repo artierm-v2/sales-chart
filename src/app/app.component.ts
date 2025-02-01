@@ -5,9 +5,7 @@ import { StoreModule } from '@ngrx/store';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet,
-    StoreModule.forFeature('salesChart', SalesChartReducer)
-  ],
+  imports: [RouterOutlet],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })

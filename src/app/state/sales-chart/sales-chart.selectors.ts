@@ -1,7 +1,6 @@
 import { createFeatureSelector, createSelector } from '@ngrx/store';
 import { SalesChartState } from './sales-chart.state';
-
-export const SALES_CHART_FEATURE_KEY = 'salesChartState';
+import { SALES_CHART_FEATURE_KEY } from './sales-chart.reducers';
 
 export const selectSalesChartState = createFeatureSelector<SalesChartState>(SALES_CHART_FEATURE_KEY);
 
