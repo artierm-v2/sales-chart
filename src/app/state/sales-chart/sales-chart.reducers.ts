@@ -17,7 +17,7 @@ export const initialState: SalesChartState = {
   },
   isLoading: false,
   chartData: {
-    labels: [],
+    //labels: [],
     salesData:[],
     sumData: [],
   },

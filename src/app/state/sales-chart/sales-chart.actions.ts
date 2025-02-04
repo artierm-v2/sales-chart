@@ -1,5 +1,5 @@
 import { createAction, props } from '@ngrx/store';
-import { GetDailySalesView } from '../../features/sales-chart/interfaces/get-daily-sales.view';
+import { DailySalesView } from '../../features/sales-chart/interfaces/get-daily-sales.view';
 import { ChartDateSettings } from '../../features/sales-chart/interfaces/chart-date-settings';
 
 export const loadChartData = createAction(
@@ -9,7 +9,7 @@ export const loadChartData = createAction(
 
 export const loadChartDataSuccess = createAction(
   '[Sales Chart] Load Chart Data [SUCCESS]',
-  props<{ chartData: GetDailySalesView }>(),
+  props<{ chartData: DailySalesView }>(),
 );
 
 export const loadChartDataError = createAction(

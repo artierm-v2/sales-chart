@@ -19,8 +19,16 @@ export class SalesChartEffects {
       ofType(salesChartActions.loadChartData),
       switchMap(({ startDate, endDate }) =>
         this.salesChartService.getSalesData(startDate, endDate).pipe(
-          map((chartData: GetDailySalesView) => salesChartActions.loadChartDataSuccess({ chartData })),
-          catchError((error) => of(salesChartActions.loadChartDataError({ error })))
+          map((response: GetDailySalesView) => {
+            if (response.isSuccess) {
+              return salesChartActions.loadChartDataSuccess({ chartData: response.value });
+            } else {
+              return salesChartActions.loadChartDataError({ error: response.error });
+            }
+          }),
+          catchError((error) =>
+            of(salesChartActions.loadChartDataError({ error: error.message }))
+          )
         )
       )
     )
