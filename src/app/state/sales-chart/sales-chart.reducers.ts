@@ -3,21 +3,25 @@ import { SalesChartState } from './sales-chart.state';
 import { loadChartData, loadChartDataError, loadChartDataSuccess, setDateSettings } from './sales-chart.actions';
 import { TimeInterval } from '../../shared/enums/time-interval.enum';
 
-
 export const SALES_CHART_FEATURE_KEY = 'sales-chart';
 
-const oneMonthAgo = new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString();
+const getOneMonthAgo = (): string => {
+  const date = new Date();
+  date.setMonth(date.getMonth() - 1);
+  return date.toISOString();
+};
+
 const currentDate = new Date().toISOString();
 
 export const initialState: SalesChartState = {
   dateSettings: {
-    startDate: oneMonthAgo,
+    startDate: getOneMonthAgo(),
     endDate: currentDate,
     timeInterval: TimeInterval.Month,
   },
   isLoading: false,
   chartData: {
-    salesData:[],
+    salesData: [],
     sumData: [],
   },
 };
@@ -43,7 +47,9 @@ const reducer = createReducer(
   }))
 );
 
-
-export function salesChartReducer(state: SalesChartState | undefined, action: Action): any {
+export function salesChartReducer(
+  state: SalesChartState | undefined,
+  action: Action
+): SalesChartState {
   return reducer(state, action);
 }

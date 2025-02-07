@@ -26,9 +26,12 @@ export class SalesChartEffects {
               return salesChartActions.loadChartDataError({ error: response.error });
             }
           }),
-          catchError((error) =>
-            of(salesChartActions.loadChartDataError({ error: error.message }))
-          )
+          catchError((error) => {
+            console.error('Error loading chart data:', error);
+            return of(salesChartActions.loadChartDataError({
+              error: error.message || 'An unexpected error occurred'
+            }));
+          })
         )
       )
     )

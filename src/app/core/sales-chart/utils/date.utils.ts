@@ -1,4 +1,5 @@
 import { KeyValue } from "../../../features/sales-chart/interfaces/key-value.interface";
+import { GlobalConstants } from "../consts/consts";
 
 export class DateUtils {
   static formatDateToISO(dateString: string): string {
@@ -22,7 +23,7 @@ export class DateUtils {
 
   static getQuarter(date: Date): string {
     const year = date.getFullYear();
-    const quarter = Math.floor(date.getMonth() / 3) + 1;
+    const quarter = Math.floor(date.getMonth() / GlobalConstants.MONTHS_PER_QUARTER) + 1;
     return `${year}/Q${quarter}`;
   }
 
@@ -60,7 +61,7 @@ export class DateUtils {
   static isItemInQuarter(data: KeyValue, year: number, quarter: number): boolean {
     const itemDate = new Date(data.key);
     const itemYear = itemDate.getFullYear();
-    const itemQuarter = Math.floor(itemDate.getMonth() / 3) + 1;
+    const itemQuarter = Math.floor(itemDate.getMonth() / GlobalConstants.MONTHS_PER_QUARTER) + 1;
 
     return itemYear === year && itemQuarter === quarter;
   }
@@ -73,15 +74,14 @@ export class DateUtils {
 
   private static getWeekNumber(date: Date): number {
     const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-    const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
 
     const firstMonday = new Date(firstDayOfYear);
     if (firstDayOfYear.getDay() !== 1) {
-      const daysToAdd = (1 - firstDayOfYear.getDay() + 7) % 7;
+      const daysToAdd = (1 - firstDayOfYear.getDay() + GlobalConstants.DAYS_IN_WEEK) % GlobalConstants.DAYS_IN_WEEK;
       firstMonday.setDate(firstMonday.getDate() + daysToAdd);
     }
 
-    const daysSinceFirstMonday = (date.getTime() - firstMonday.getTime()) / 86400000;
-    return Math.floor(daysSinceFirstMonday / 7) + 1;
+    const daysSinceFirstMonday = (date.getTime() - firstMonday.getTime()) / GlobalConstants.MILLISECONDS_IN_DAY;
+    return Math.floor(daysSinceFirstMonday / GlobalConstants.DAYS_IN_WEEK) + 1;
   }
 }

@@ -1,4 +1,3 @@
-// src/app/components/sales-chart/services/chart-settings.service.ts
 import { Injectable } from '@angular/core';
 import { ChartSettings } from '../../features/sales-chart/interfaces/chart-settings.interface';
 
@@ -9,7 +8,6 @@ export class ChartSettingsService {
   private _settings: ChartSettings;
 
   constructor() {
-    // Инициализируем настройки с дефолтными значениями
     this._settings = {
       chartType: 'bar',
       chartData: {

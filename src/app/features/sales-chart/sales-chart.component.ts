@@ -69,10 +69,14 @@ export class SalesChartComponent implements OnInit, OnDestroy {
   get chartType(): ChartTypeString {
     return this.chartSettingsService.getSettings().chartType;
   }
+
   constructor(
     private store: Store<SalesChartState>,
     private chartSettingsService: ChartSettingsService,
-  ) { }
+  ) {
+    Chart.register(zoomPlugin);
+    this.registerBorderPlugin();
+  }
 
   ngOnInit(): void {
 
@@ -346,7 +350,7 @@ export class SalesChartComponent implements OnInit, OnDestroy {
     endDate: Date,
   ): GroupedData[] {
     const totalDays = Math.ceil((endDate.getTime() - startDate.getTime())
-      / ( GlobalConstants.HOURS_IN_DAY * GlobalConstants.MINUTES_IN_HOUR * GlobalConstants.SECONDS_IN_MINUTE * GlobalConstants.MILLISECONDS_IN_SECOND));
+      / (GlobalConstants.HOURS_IN_DAY * GlobalConstants.MINUTES_IN_HOUR * GlobalConstants.SECONDS_IN_MINUTE * GlobalConstants.MILLISECONDS_IN_SECOND));
 
     const groupedData: GroupedData[] = new Array(totalDays);
     let currentIndex = 0;
@@ -412,6 +416,21 @@ export class SalesChartComponent implements OnInit, OnDestroy {
     this.chart?.update();
   }
 
+  private registerBorderPlugin(): void {
+    Chart.register({
+      id: 'borderPlugin',
+      beforeDraw: function (chart) {
+        const ctx = chart.ctx;
+        const chartArea = chart.chartArea;
+        ctx.save();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'black';
+        ctx.strokeRect(chartArea.left, chartArea.top, chartArea.width, chartArea.height);
+        ctx.restore();
+      },
+    });
+  }
+
   public resetZoom(): void {
     Chart.getChart('canvasId')?.resetZoom();
   }
@@ -420,18 +439,3 @@ export class SalesChartComponent implements OnInit, OnDestroy {
     this.sub$.unsubscribe();
   }
 }
-
-Chart.register({
-  id: 'borderPlugin',
-  beforeDraw: function (chart) {
-    const ctx = chart.ctx;
-    const chartArea = chart.chartArea;
-    ctx.save();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = 'black';
-    ctx.strokeRect(chartArea.left, chartArea.top, chartArea.width, chartArea.height);
-    ctx.restore();
-  },
-});
-
-Chart.register(zoomPlugin);

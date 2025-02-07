@@ -5,7 +5,6 @@ export interface GetDailySalesView {
 }
 
 export interface DailySalesView {
-  // labels: string[];
   salesData: Record<number, number>;
   sumData: Record<number, number>;
 }

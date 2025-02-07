@@ -1,4 +1,70 @@
-<div>
+<div class="chart-controls">
+  <!-- Control group container -->
+  <div class="control-group">
+    <label for="timeInterval">
+      Time Period:
+      <select
+        id="timeInterval"
+        [(ngModel)]="timeInterval"
+        (change)="updateTimeInterval()"
+        aria-label="Select time period"
+      >
+        <option value="quarter">Quarter</option>
+        <option value="month">Month</option>
+        <option value="week">Week</option>
+        <option value="day">Day</option>
+      </select>
+    </label>
+  </div>
+
+  <!-- Date group container -->
+  <div class="date-group">
+    <label for="startDate">
+      Start Date:
+      <input
+        id="startDate"
+        type="date"
+        [(ngModel)]="startDate"
+        (change)="updateTimeInterval()"
+        aria-label="Select start date"
+      />
+    </label>
+
+    <label for="endDate">
+      End Date:
+      <input
+        id="endDate"
+        type="date"
+        [(ngModel)]="endDate"
+        (change)="updateTimeInterval()"
+        aria-label="Select end date"
+      />
+    </label>
+  </div>
+
+  <!-- Reset zoom button -->
+  <button
+    class="reset-zoom-btn"
+    (click)="resetZoom()"
+    aria-label="Reset chart zoom"
+  >
+    Reset Zoom
+  </button>
+</div>
+
+<!-- Chart container -->
+<div class="canvas-container">
+  <canvas
+    id="canvasId"
+    baseChart
+    [data]="chartData"
+    [options]="chartOptions"
+    [type]="chartType"
+    role="img"
+    aria-label="Sales chart"
+  ></canvas>
+</div>
+<!-- <div>
   <label>
     Time Period:
     <select [(ngModel)]="timeInterval" (change)="updateTimeInterval()">
@@ -28,4 +94,4 @@
     [options]="chartOptions"
     [type]="chartType">
   </canvas>
-</div>
+</div> -->
