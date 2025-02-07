@@ -25,7 +25,7 @@
         id="startDate"
         type="date"
         [(ngModel)]="startDate"
-        (change)="updateTimeInterval()"
+        (change)="onStateChange()"
         aria-label="Select start date"
       />
     </label>
@@ -36,7 +36,7 @@
         id="endDate"
         type="date"
         [(ngModel)]="endDate"
-        (change)="updateTimeInterval()"
+        (change)="onStateChange()"
         aria-label="Select end date"
       />
     </label>

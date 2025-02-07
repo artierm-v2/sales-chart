@@ -111,7 +111,7 @@ export class SalesChartComponent implements OnInit, OnDestroy {
     }));
   }
 
-  private onStateChange(): void {
+  public onStateChange(): void {
     const state = {
       startDate: this.startDate,
       endDate: this.endDate,
@@ -123,7 +123,6 @@ export class SalesChartComponent implements OnInit, OnDestroy {
       startDate: state.startDate,
       endDate: state.endDate
     }));
-
     this.updateTimeInterval();
   }
 
