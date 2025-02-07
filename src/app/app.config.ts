@@ -19,6 +19,5 @@ export const appConfig: ApplicationConfig = {
     provideStore(),
     provideState(SALES_CHART_FEATURE_KEY, salesChartReducer),
     provideEffects(SalesChartEffects),
-  ] //  registerables: [BarController, Legend, Colors] }] Alternatively, include a minimal configuration to reduce the bundle size, eg:
-
+  ]
 };

@@ -1,4 +1,5 @@
-// src/app/utils/date.utils.ts
+import { KeyValue } from "../../../features/sales-chart/interfaces/key-value.interface";
+
 export class DateUtils {
   static formatDateToISO(dateString: string): string {
     return new Date(dateString).toISOString();
@@ -39,5 +40,48 @@ export class DateUtils {
 
   static getDay(date: Date): string {
     return DateUtils.formatDate(date);
+  }
+
+  static isItemInWeek(item: KeyValue, year: number, week: number): boolean {
+    const itemDate = new Date(item.key);
+    const itemYear = itemDate.getFullYear();
+    const itemWeek = this.getWeekNumber(itemDate);
+
+    return itemYear === year && itemWeek === week;
+  }
+
+  static isItemInDay(item: KeyValue, date: Date): boolean {
+    const itemDate = new Date(item.key);
+    return itemDate.getDate() === date.getDate() &&
+      itemDate.getMonth() === date.getMonth() &&
+      itemDate.getFullYear() === date.getFullYear();
+  }
+
+  static isItemInQuarter(data: KeyValue, year: number, quarter: number): boolean {
+    const itemDate = new Date(data.key);
+    const itemYear = itemDate.getFullYear();
+    const itemQuarter = Math.floor(itemDate.getMonth() / 3) + 1;
+
+    return itemYear === year && itemQuarter === quarter;
+  }
+
+  static isItemInMonth(data: KeyValue, year: number, month: number): boolean {
+    const itemDate = new Date(data.key);
+    return itemDate.getFullYear() === year &&
+      itemDate.getMonth() === month;
+  }
+
+  private static getWeekNumber(date: Date): number {
+    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+    const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
+
+    const firstMonday = new Date(firstDayOfYear);
+    if (firstDayOfYear.getDay() !== 1) {
+      const daysToAdd = (1 - firstDayOfYear.getDay() + 7) % 7;
+      firstMonday.setDate(firstMonday.getDate() + daysToAdd);
+    }
+
+    const daysSinceFirstMonday = (date.getTime() - firstMonday.getTime()) / 86400000;
+    return Math.floor(daysSinceFirstMonday / 7) + 1;
   }
 }

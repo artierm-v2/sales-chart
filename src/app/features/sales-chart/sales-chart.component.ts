@@ -4,7 +4,7 @@ import { Chart } from 'chart.js';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import { FormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
-import { distinctUntilChanged, Subscription } from 'rxjs';
+import { distinctUntilChanged, merge, Subscription, tap } from 'rxjs';
 import { TimeInterval } from '../../shared/enums/time-interval.enum';
 import * as salesChartSelectors from '../../state/sales-chart/sales-chart.selectors';
 import * as salesChartActions from '../../state/sales-chart/sales-chart.actions';
@@ -13,7 +13,9 @@ import { ChartSettingsService } from '../../core/sales-chart/chart-settings.serv
 import { ChartData } from './interfaces/chart-data.interface';
 import { ChartTypeString } from './interfaces/dataset.interface';
 import { DateUtils } from '../../core/sales-chart/utils/date.utils';
-import { SalesItem } from './interfaces/key-value.interface';
+import { GlobalConstants } from '../../core/sales-chart/consts/consts';
+import { DayFilterOptions, MonthFilterOptions, QuarterFilterOptions, WeekFilterOptions } from './interfaces/filter-options.interface';
+import { GroupedData } from './interfaces/chart-data-values.interface';
 
 
 @Component({
@@ -44,7 +46,7 @@ export class SalesChartComponent implements OnInit, OnDestroy {
 
   set startDate(value: string) {
     this._startDate = value ? DateUtils.formatDateToISO(value) : '';
-    this.updateTimeInterval();
+    // this.updateTimeInterval();
   }
 
   get endDate(): string {
@@ -53,7 +55,7 @@ export class SalesChartComponent implements OnInit, OnDestroy {
 
   set endDate(value: string) {
     this._endDate = value ? DateUtils.formatDateToISO(value) : '';
-    this.updateTimeInterval();
+    // this.updateTimeInterval();
   }
 
   get chartData(): ChartData {
@@ -73,26 +75,30 @@ export class SalesChartComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit(): void {
-    this.sub$.add(
-      this.store.select(salesChartSelectors.selectDateSettings)
-        .pipe(distinctUntilChanged())
-        .subscribe((dateSettings) => {
-          this.startDate = DateUtils.formatDateToISO(dateSettings.startDate);
-          this.endDate = DateUtils.formatDateToISO(dateSettings.endDate);
-          this.timeInterval = dateSettings.timeInterval;
-        })
-    );
 
     this.sub$.add(
-      this.store.select(salesChartSelectors.selectChartData)
-        .pipe(distinctUntilChanged())
-        .subscribe((chartData) => {
-          this.labels = [];
-          this.salesDataRecord = chartData.salesData;
-          this.sumDataRecord = chartData.sumData;
-          this.salesData = [...Object.values(chartData.salesData)];
-          this.sumData = [...Object.values(chartData.sumData)];
-        })
+      merge(
+        this.store.select(salesChartSelectors.selectDateSettings)
+          .pipe(
+            distinctUntilChanged(),
+            tap((dateSettings) => {
+              this.startDate = DateUtils.formatDateToISO(dateSettings.startDate);
+              this.endDate = DateUtils.formatDateToISO(dateSettings.endDate);
+              this.timeInterval = dateSettings.timeInterval;
+            })
+          ),
+        this.store.select(salesChartSelectors.selectChartData)
+          .pipe(
+            distinctUntilChanged(),
+            tap((chartData) => {
+              this.labels = [];
+              this.salesDataRecord = chartData.salesData;
+              this.sumDataRecord = chartData.sumData;
+              this.salesData = [...Object.values(chartData.salesData)];
+              this.sumData = [...Object.values(chartData.sumData)];
+            })
+          )
+      ).subscribe()
     );
 
     this.store.dispatch(salesChartActions.loadChartData({
@@ -101,17 +107,19 @@ export class SalesChartComponent implements OnInit, OnDestroy {
     }));
   }
 
-  onStateChange(): void {
+  private onStateChange(): void {
     const state = {
       startDate: this.startDate,
       endDate: this.endDate,
       timeInterval: this.timeInterval
     };
+
     this.store.dispatch(salesChartActions.setDateSettings({ dateSettings: state }));
     this.store.dispatch(salesChartActions.loadChartData({
-      startDate: this.startDate,
-      endDate: this.endDate
+      startDate: state.startDate,
+      endDate: state.endDate
     }));
+
     this.updateTimeInterval();
   }
 
@@ -124,7 +132,7 @@ export class SalesChartComponent implements OnInit, OnDestroy {
   ): void {
     const quarterlyData = this.groupDataByQuarter(this.salesDataRecord, this.sumDataRecord, startDate, endDate);
     quarterlyData.forEach((data) => {
-      labels.push(data.quarterLabel);
+      labels.push(data.label);
       salesData.push(data.salesData.reduce((sum: number, value: number) => sum + value, 0));
       sumData.push(data.sumData.reduce((sum: number, value: number) => sum + value, 0));
     });
@@ -137,12 +145,18 @@ export class SalesChartComponent implements OnInit, OnDestroy {
     salesData: number[],
     sumData: number[],
   ): void {
-    const monthlyData = this.groupDataByMonth(this.salesDataRecord, this.sumDataRecord, startDate, endDate);
-    monthlyData.forEach((data) => {
-      labels.push(data.monthLabel);
-      salesData.push(data.salesData.reduce((sum: number, value: number) => sum + value, 0));
-      sumData.push(data.sumData.reduce((sum: number, value: number) => sum + value, 0));
-    });
+    const monthlyData = this.groupDataByMonth(
+      this.salesDataRecord,
+      this.sumDataRecord,
+      startDate,
+      endDate
+    );
+
+    for (const data of monthlyData) {
+      labels.push(data.label);
+      salesData.push(data.salesData.reduce((sum, value) => sum + value, 0));
+      sumData.push(data.sumData.reduce((sum, value) => sum + value, 0));
+    }
   }
 
   private updateDayData(
@@ -152,133 +166,156 @@ export class SalesChartComponent implements OnInit, OnDestroy {
     salesData: number[],
     sumData: number[],
   ): void {
-    const dailyData = this.groupDataByDay(this.salesDataRecord, this.sumDataRecord, startDate, endDate);
-    dailyData.forEach((data) => {
-      labels.push(data.dayLabel);
-      salesData.push(data.salesData.reduce((sum: number, value: number) => sum + value, 0));
-      sumData.push(data.sumData.reduce((sum: number, value: number) => sum + value, 0));
-    });
+    const dailyData = this.groupDataByDay(
+      this.salesDataRecord,
+      this.sumDataRecord,
+      startDate,
+      endDate
+    );
+
+    for (const data of dailyData) {
+      labels.push(data.label);
+      salesData.push(data.salesData.reduce((sum, value) => sum + value, 0));
+      sumData.push(data.sumData.reduce((sum, value) => sum + value, 0));
+    }
   }
 
   private groupDataByQuarter(
     salesData: Record<number, number>,
     sumData: Record<number, number>,
     startDate: Date,
-    endDate: Date
-  ): any[] {
-    const groupedData: any[] = [];
+    endDate: Date,
+  ): GroupedData[] {
+    const totalQuarters = (endDate.getFullYear() - startDate.getFullYear()) * GlobalConstants.QUARTERS_IN_YEAR
+      + Math.ceil((endDate.getMonth() - startDate.getMonth() + 1) / GlobalConstants.MONTHS_PER_QUARTER);
+
+    const groupedData: GroupedData[] = new Array(totalQuarters);
+    let currentIndex = 0;
+
+    const filterItems = (data: Record<number, number>, options: QuarterFilterOptions): number[] => {
+      return Object.entries(data)
+        .filter(([key, value]) => {
+          const item = { key, value };
+          return DateUtils.isItemInQuarter(item, options.year, options.quarter);
+        })
+        .map(([_, value]) => value);
+    };
 
     for (let year = startDate.getFullYear(); year <= endDate.getFullYear(); year++) {
-      for (let q = 1; q <= 4; q++) {
-        const quarterDate = new Date(year, (q - 1) * 3);
-        const quarterLabel = DateUtils.getQuarter(quarterDate);
+      for (let quarter = 1; quarter <= GlobalConstants.QUARTERS_IN_YEAR; quarter++) {
+        const filterOptions: QuarterFilterOptions = { year, quarter };
 
-        const salesForQuarter = Object.entries(salesData)
-          .filter(([key, value]) => {
-            const item = { key, value };
-            return this.isItemInQuarter(item, year, q);
-          }).map(([_, value]) => value);
+        const quarterDate = new Date(year, (quarter - 1) * GlobalConstants.MONTHS_PER_QUARTER);
 
-        const sumForQuarter = Object.entries(sumData)
-          .filter(([key, value]) => {
-            const item = { key, value };
-            return this.isItemInQuarter(item, year, q);
-          }).map(([_, value]) => value);
+        const [salesForQuarter, sumForQuarter] = [
+          filterItems(salesData, filterOptions),
+          filterItems(sumData, filterOptions)
+        ];
 
-        groupedData.push({
-          quarterLabel,
+        groupedData[currentIndex++] = {
+          label: DateUtils.getQuarter(quarterDate),
           salesData: salesForQuarter,
           sumData: sumForQuarter,
-        });
+        };
       }
     }
-    return groupedData;
-  }
 
-  private isItemInQuarter(data: SalesItem, year: number, quarter: number): boolean {
-    const itemDate = new Date(data.key);
-    const itemYear = itemDate.getFullYear();
-    const itemQuarter = Math.floor(itemDate.getMonth() / 3) + 1;
-
-    return itemYear === year && itemQuarter === quarter;
-  }
-
-  private isItemInMonth(data: SalesItem, year: number, month: number): boolean {
-    const itemDate = new Date(data.key);
-    return itemDate.getFullYear() === year &&
-      itemDate.getMonth() === month;
+    return groupedData.slice(0, currentIndex);
   }
 
   private groupDataByMonth(
     salesData: Record<number, number>,
     sumData: Record<number, number>,
     startDate: Date,
-    endDate: Date
-  ): any[] {
-    const groupedData: any[] = [];
+    endDate: Date,
+  ): GroupedData[] {
+    const totalMonths = (endDate.getFullYear() - startDate.getFullYear()) * GlobalConstants.MONTHS_IN_YEAR
+      + (endDate.getMonth() - startDate.getMonth() + 1);
 
-    for (let year = startDate.getFullYear(); year <= endDate.getFullYear(); year++) {
-      for (let month = 0; month <= 11; month++) {
-        const monthDate = new Date(year, month);
-        const monthLabel = DateUtils.getMonth(monthDate);
 
-        const salesForMonth = Object.entries(salesData)
-          .filter(([key, value]) => {
-            const item = { key, value };
-            return this.isItemInMonth(item, year, month);
-          }).map(([_, value]) => value);
+    const groupedData: GroupedData[] = new Array(totalMonths);
+    let currentIndex = 0;
 
-        const sumForMonth = Object.entries(sumData)
-          .filter(([key, value]) => {
-            const item = { key, value };
-            return this.isItemInMonth(item, year, month);
-          }).map(([_, value]) => value);
+    const filterItems = (data: Record<number, number>, options: MonthFilterOptions): number[] => {
+      return Object.entries(data)
+        .filter(([key, value]) => {
+          const item = { key, value };
+          return DateUtils.isItemInMonth(item, options.year, options.month);
+        })
+        .map(([_, value]) => value);
+    };
 
-        groupedData.push({
-          monthLabel,
-          salesData: salesForMonth,
-          sumData: sumForMonth,
-        });
+    let year = startDate.getFullYear();
+    let month = startDate.getMonth();
+
+    while (year <= endDate.getFullYear()) {
+      const filterOptions: MonthFilterOptions = { year, month };
+
+      const monthDate = new Date(year, month);
+
+      const [salesForMonth, sumForMonth] = [
+        filterItems(salesData, filterOptions),
+        filterItems(sumData, filterOptions)
+      ];
+
+      groupedData[currentIndex++] = {
+        label: DateUtils.getMonth(monthDate),
+        salesData: salesForMonth,
+        sumData: sumForMonth,
+      };
+
+      month++;
+      if (month >= GlobalConstants.MONTHS_IN_YEAR) {
+        month = 0;
+        year++;
       }
     }
-    return groupedData;
-  }
 
+    return groupedData.slice(0, currentIndex);
+  }
 
   private groupDataByWeek(
     salesData: Record<number, number>,
     sumData: Record<number, number>,
     startDate: Date,
-    endDate: Date
-  ): any[] {
-    const groupedData: any[] = [];
+    endDate: Date,
+  ): GroupedData[] {
+
+    const totalYears = endDate.getFullYear() - startDate.getFullYear() + 1;
+    const groupedData: GroupedData[] = new Array(totalYears * GlobalConstants.WEEKS_IN_YEAR);
+
+    let currentIndex = 0;
+
+    const filterItems = (data: Record<number, number>, options: WeekFilterOptions): number[] => {
+      return Object.entries(data)
+        .filter(([key, value]) => {
+          const item = { key, value };
+          return DateUtils.isItemInWeek(item, options.year, options.week);
+        })
+        .map(([_, value]) => value);
+    };
 
     for (let year = startDate.getFullYear(); year <= endDate.getFullYear(); year++) {
-      for (let week = 1; week <= 52; week++) {
+      for (let week = 1; week <= GlobalConstants.WEEKS_IN_YEAR; week++) {
+        const filterOptions: WeekFilterOptions = { year, week };
+
         const weekDate = new Date(year, 0);
-        weekDate.setDate(weekDate.getDate() + (week - 1) * 7);
-        const weekLabel = DateUtils.getWeek(weekDate);
+        weekDate.setDate(weekDate.getDate() + (week - 1) * GlobalConstants.DAYS_IN_WEEK);
 
-        const salesForWeek = Object.entries(salesData)
-          .filter(([key, value]) => {
-            const item = { key, value };
-            return this.isItemInWeek(item, year, week);
-          }).map(([_, value]) => value);
+        const [salesForWeek, sumForWeek] = [
+          filterItems(salesData, filterOptions),
+          filterItems(sumData, filterOptions)
+        ];
 
-        const sumForWeek = Object.entries(sumData)
-          .filter(([key, value]) => {
-            const item = { key, value };
-            return this.isItemInWeek(item, year, week);
-          }).map(([_, value]) => value);
-
-        groupedData.push({
-          weekLabel,
+        groupedData[currentIndex++] = {
+          label: DateUtils.getWeek(weekDate),
           salesData: salesForWeek,
           sumData: sumForWeek,
-        });
+        };
       }
     }
-    return groupedData;
+
+    return groupedData.slice(0, currentIndex);
   }
 
   private updateWeekData(
@@ -288,80 +325,78 @@ export class SalesChartComponent implements OnInit, OnDestroy {
     salesData: number[],
     sumData: number[],
   ): void {
-    const weeklyData = this.groupDataByWeek(this.salesDataRecord, this.sumDataRecord, startDate, endDate);
-    weeklyData.forEach((data) => {
-      labels.push(data.weekLabel);
-      salesData.push(data.salesData.reduce((sum: number, value: number) => sum + value, 0));
-      sumData.push(data.sumData.reduce((sum: number, value: number) => sum + value, 0));
-    });
+    const weeklyData = this.groupDataByWeek(
+      this.salesDataRecord,
+      this.sumDataRecord,
+      startDate,
+      endDate
+    );
+
+    for (const data of weeklyData) {
+      labels.push(data.label);
+      salesData.push(data.salesData.reduce((sum, value) => sum + value, 0));
+      sumData.push(data.sumData.reduce((sum, value) => sum + value, 0));
+    }
   }
 
   private groupDataByDay(
     salesData: Record<number, number>,
     sumData: Record<number, number>,
     startDate: Date,
-    endDate: Date
-): any[] {
-    const groupedData: any[] = [];
+    endDate: Date,
+  ): GroupedData[] {
+    const totalDays = Math.ceil((endDate.getTime() - startDate.getTime())
+      / ( GlobalConstants.HOURS_IN_DAY * GlobalConstants.MINUTES_IN_HOUR * GlobalConstants.SECONDS_IN_MINUTE * GlobalConstants.MILLISECONDS_IN_SECOND));
+
+    const groupedData: GroupedData[] = new Array(totalDays);
+    let currentIndex = 0;
+
+    const filterItems = (data: Record<number, number>, options: DayFilterOptions): number[] => {
+      return Object.entries(data)
+        .filter(([key, value]) => {
+          const item = { key, value };
+          return DateUtils.isItemInDay(item, options.date);
+        })
+        .map(([_, value]) => value);
+    };
+
     const currentDate = new Date(startDate);
-
     while (currentDate <= endDate) {
-        const dayLabel = `${currentDate.getDate()} ${DateUtils.getMonth(currentDate)} ${currentDate.getFullYear()}`;
-        const salesForDay = Object.entries(salesData)
-            .filter(([key, value]) => {
-                const item = { key, value };
-                return this.isItemInDay(item, currentDate);
-            }).map(([_, value]) => value);
+      const filterOptions: DayFilterOptions = { date: new Date(currentDate) };
 
-        const sumForDay = Object.entries(sumData)
-            .filter(([key, value]) => {
-                const item = { key, value };
-                return this.isItemInDay(item, currentDate);
-            }).map(([_, value]) => value);
+      const [salesForDay, sumForDay] = [
+        filterItems(salesData, filterOptions),
+        filterItems(sumData, filterOptions)
+      ];
 
-        groupedData.push({
-            dayLabel,
-            salesData: salesForDay,
-            sumData: sumForDay,
-        });
+      groupedData[currentIndex++] = {
+        label: DateUtils.getDay(currentDate),
+        salesData: salesForDay,
+        sumData: sumForDay,
+      };
 
-        currentDate.setDate(currentDate.getDate() + 1);
+      currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    return groupedData;
-}
-
-// Дополнительный метод для проверки принадлежности элемента к дню
-private isItemInDay(item: {key: string, value: number}, date: Date): boolean {
-    const itemDate = new Date(item.key);
-    return itemDate.getDate() === date.getDate() &&
-           itemDate.getMonth() === date.getMonth() &&
-           itemDate.getFullYear() === date.getFullYear();
-}
-
+    return groupedData.slice(0, currentIndex);
+  }
 
   public updateTimeInterval(): void {
     const start = DateUtils.parseDate(this._startDate);
     const end = DateUtils.parseDate(this._endDate);
+
     const labels: string[] = [];
     const salesData: number[] = [];
     const sumData: number[] = [];
 
-    switch (this.timeInterval) {
-      case TimeInterval.Quarter:
-        this.updateQuarterData(start, end, labels, salesData, sumData);
-        break;
-      case TimeInterval.Month:
-        this.updateMonthData(start, end, labels, salesData, sumData);
-        break;
-      case TimeInterval.Week:
-        this.updateWeekData(start, end, labels, salesData, sumData);
-        break;
-      case TimeInterval.Day:
-        this.updateDayData(start, end, labels, salesData, sumData);
-        break;
-    }
+    const updateDataMethods = {
+      [TimeInterval.Quarter]: () => this.updateQuarterData(start, end, labels, salesData, sumData),
+      [TimeInterval.Month]: () => this.updateMonthData(start, end, labels, salesData, sumData),
+      [TimeInterval.Week]: () => this.updateWeekData(start, end, labels, salesData, sumData),
+      [TimeInterval.Day]: () => this.updateDayData(start, end, labels, salesData, sumData)
+    };
 
+    updateDataMethods[this.timeInterval]?.();
 
     this.chartSettingsService.updateSettings({
       chartData: {
@@ -377,29 +412,6 @@ private isItemInDay(item: {key: string, value: number}, date: Date): boolean {
     this.chart?.update();
   }
 
-  private isItemInWeek(item: SalesItem, year: number, week: number): boolean {
-    const itemDate = new Date(item.key);
-    const itemYear = itemDate.getFullYear();
-    const itemWeek = this.getWeekNumber(itemDate);
-
-    return itemYear === year && itemWeek === week;
-  }
-
-  private getWeekNumber(date: Date): number {
-    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-    const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
-
-    // Находим понедельник первой недели
-    const firstMonday = new Date(firstDayOfYear);
-    if (firstDayOfYear.getDay() !== 1) {
-        const daysToAdd = (1 - firstDayOfYear.getDay() + 7) % 7;
-        firstMonday.setDate(firstMonday.getDate() + daysToAdd);
-    }
-
-    // Вычисляем номер недели
-    const daysSinceFirstMonday = (date.getTime() - firstMonday.getTime()) / 86400000;
-    return Math.floor(daysSinceFirstMonday / 7) + 1;
-}
   public resetZoom(): void {
     Chart.getChart('canvasId')?.resetZoom();
   }

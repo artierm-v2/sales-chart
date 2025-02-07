@@ -1,4 +1,4 @@
-export interface SalesItem {
-  key: string;  // формат: YYYY-MM-DDTHH:mm:ss
+export interface KeyValue {
+  key: string;
   value: number;
 }
